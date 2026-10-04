@@ -1,0 +1,20 @@
+# Flutter gen-l10n configuration
+# Requires `generate: true` under `flutter:` in pubspec.yaml (already set).
+
+# Source .arb files (committed to VCS).
+arb-dir: lib/l10n
+
+# fa (Persian) is the PRODUCT BASE language.
+# Keys are authored in fa first; en is secondary. A missing key breaks
+# on the template (fa), never silently on en.
+template-arb-file: app_fa.arb
+
+# Generated Dart output — lands inside lib/l10n/ as real package files
+# (modern Flutter tooling: no synthetic package, committed to VCS).
+# Import path: package:datatade_bank_sms/l10n/app_localizations.dart
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+
+# AppLocalizations.of(context) is NON-nullable — a missing delegate/
+# unsupported locale becomes a loud error instead of silent null.
+nullable-getter: false
