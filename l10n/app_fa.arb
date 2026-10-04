@@ -1,20 +1,77 @@
-# Flutter gen-l10n configuration
-# Requires `generate: true` under `flutter:` in pubspec.yaml (already set).
+{
+  "@@locale": "fa",
 
-# Source .arb files (committed to VCS).
-arb-dir: lib/l10n
+  "appTitle": "داده‌تد",
+  "@appTitle": { "description": "نام نمایشی اپ — در AppBar، عنوان پنجره و Splash" },
 
-# fa (Persian) is the PRODUCT BASE language.
-# Keys are authored in fa first; en is secondary. A missing key breaks
-# on the template (fa), never silently on en.
-template-arb-file: app_fa.arb
+  "ok": "باشه",
+  "@ok": { "description": "دکمه تأیید دیالوگ‌ها" },
 
-# Generated Dart output — lands inside lib/l10n/ as real package files
-# (modern Flutter tooling: no synthetic package, committed to VCS).
-# Import path: package:datatade_bank_sms/l10n/app_localizations.dart
-output-localization-file: app_localizations.dart
-output-class: AppLocalizations
+  "yes": "بله",
+  "@yes": { "description": "پاسخ مثبت دیالوگ تأیید" },
 
-# AppLocalizations.of(context) is NON-nullable — a missing delegate/
-# unsupported locale becomes a loud error instead of silent null.
-nullable-getter: false
+  "no": "خیر",
+  "@no": { "description": "پاسخ منفی دیالوگ تأیید" },
+
+  "cancel": "انصراف",
+  "@cancel": { "description": "لغو عملیات جاری" },
+
+  "confirm": "تأیید",
+  "@confirm": { "description": "تأیید عملیات جاری" },
+
+  "retry": "تلاش دوباره",
+  "@retry": { "description": "دکمه Retry در ErrorView و حالات خطای Providerها" },
+
+  "refresh": "بازخوانی",
+  "@refresh": { "description": "Pull-to-refresh و دکمه Refresh صفحات" },
+
+  "close": "بستن",
+  "@close": { "description": "بستن صفحه یا دیالوگ" },
+
+  "back": "بازگشت",
+  "@back": { "description": "بازگشت به صفحه قبل" },
+
+  "save": "ذخیره",
+  "@save": { "description": "ذخیره فرم (Parser Rule و تنظیمات)" },
+
+  "delete": "حذف",
+  "@delete": { "description": "حذف رکورد — همیشه با دیالوگ تأیید" },
+
+  "edit": "ویرایش",
+  "@edit": { "description": "ویرایش رکورد" },
+
+  "loading": "در حال بارگذاری…",
+  "@loading": { "description": "پیام LoadingView و حالت Loading همه Providerها" },
+
+  "processing": "در حال پردازش…",
+  "@processing": { "description": "پیام حین عملیات فعال (Sync، Parsing و …)" },
+
+  "success": "موفق",
+  "@success": { "description": "برچسب وضعیت موفق" },
+
+  "error": "خطا",
+  "@error": { "description": "عنوان عمومی خطا" },
+
+  "errorTitle": "مشکلی پیش آمد",
+  "@errorTitle": { "description": "عنوان ErrorView" },
+
+  "errorGeneric": "خطای غیرمنتظره‌ای رخ داد. لطفاً دوباره تلاش کنید.",
+  "@errorGeneric": { "description": "پیام پیش‌فرض ErrorView وقتی Failure پیام مشخصی ندارد" },
+
+  "errorNetwork": "ارتباط با سرور برقرار نشد. اتصال اینترنت را بررسی کنید.",
+  "@errorNetwork": { "description": "پیام خطای شبکه در ErrorView" },
+
+  "errorWithCode": "خطا با کد: {code}",
+  "@errorWithCode": {
+    "description": "نمایش کد خطای Typed Failure در ErrorView",
+    "placeholders": {
+      "code": { "type": "String", "example": "DB-001" }
+    }
+  },
+
+  "emptyTitle": "موردی برای نمایش نیست",
+  "@emptyTitle": { "description": "عنوان EmptyView" },
+
+  "emptyGeneric": "هنوز داده‌ای ثبت نشده است.",
+  "@emptyGeneric": { "description": "زیرعنوان پیش‌فرض EmptyView" }
+}

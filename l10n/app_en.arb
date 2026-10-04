@@ -1,0 +1,35 @@
+{
+  "@@locale": "en",
+
+  "appTitle": "DadehTad",
+
+  "ok": "OK",
+  "yes": "Yes",
+  "no": "No",
+  "cancel": "Cancel",
+  "confirm": "Confirm",
+  "retry": "Try Again",
+  "refresh": "Refresh",
+  "close": "Close",
+  "back": "Back",
+  "save": "Save",
+  "delete": "Delete",
+  "edit": "Edit",
+
+  "loading": "Loading…",
+  "processing": "Processing…",
+  "success": "Success",
+  "error": "Error",
+  "errorTitle": "Something went wrong",
+  "errorGeneric": "An unexpected error occurred. Please try again.",
+  "errorNetwork": "Could not reach the server. Check your internet connection.",
+  "errorWithCode": "Error code: {code}",
+  "@errorWithCode": {
+    "placeholders": {
+      "code": { "type": "String", "example": "DB-001" }
+    }
+  },
+
+  "emptyTitle": "Nothing to show",
+  "emptyGeneric": "No data has been recorded yet."
+}
