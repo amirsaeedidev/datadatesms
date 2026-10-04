@@ -1,5 +1,3 @@
-import 'package:flutter/material.dart';
-
 /// Central theme of the application.
 ///
 /// RULE: NO feature-specific styling. This file defines the product-wide
@@ -8,36 +6,32 @@ import 'package:flutter/material.dart';
 ///
 /// Font strategy: system default for now (Persian glyphs render fine on
 /// Android). If a branded font (e.g. Vazirmatn) is added later, only the
-/// `_fontFamily` constant below changes.
+/// [_fontFamily] constant changes — plus a `fonts:` block in pubspec.
 library;
 
+import 'package:flutter/material.dart';
+
 /// Single source of truth for theme-related constants that are also
-/// needed OUTSIDE the theme (e.g. constants, logs) — keeps magic values
-/// out of widgets.
+/// needed OUTSIDE ThemeData (e.g. core status views, logs).
 abstract final class AppThemeConstants {
   /// Brand seed color — deep teal, calm and trustworthy for a financial app.
   /// Drives both light & dark [ColorScheme.fromSeed].
   static const Color seedColor = Color(0xFF0F6E5C);
 
-  /// Semantic background used by [LoadingView]/[ErrorView]/[EmptyView]
-  /// for the large illustration icon.
+  /// Muted icon color used by LoadingView / ErrorView / EmptyView.
   static const Color statusIconColor = Color(0xFF9AA5B1);
 }
 
 /// Builds the application [ThemeData].
 ///
-/// Pass [brightness] explicitly — the [DadehTadApp] widget decides the
-/// mode (system / light / dark) at bootstrap; theme file stays pure.
+/// Pass [brightness] explicitly — the root widget decides the mode
+/// (system / light / dark) at bootstrap; this file stays pure.
 class AppTheme {
   AppTheme._();
 
   /// Font family applied to the whole theme.
-  /// null = platform default. Change here to switch to a bundled font.
+  /// `null` = platform default. Change here to switch to a bundled font.
   static const String? _fontFamily = null;
-
-  // ---------------------------------------------------------------------------
-  // Color schemes
-  // ---------------------------------------------------------------------------
 
   /// Light color scheme derived from the brand seed.
   static ThemeData light() => _build(Brightness.light);
@@ -57,11 +51,7 @@ class AppTheme {
       fontFamily: _fontFamily,
       visualDensity: VisualDensity.adaptivePlatformDensity,
 
-      // --- Global RTL awareness -------------------------------------------------
-      // Material handles direction automatically for layout, but explicit
-      // component tweaks for mirrored icons live per-widget, not here.
-
-      // --- AppBar ----------------------------------------------------------------
+      // --- AppBar ------------------------------------------------------------------
       appBarTheme: AppBarTheme(
         centerTitle: true,
         elevation: 0,
@@ -76,19 +66,20 @@ class AppTheme {
         ),
       ),
 
-      // --- Cards (used by lists across all features) -----------------------------
-      cardTheme: CardTheme(
+      // --- Cards (lists across all features) ----------------------------------------
+      // NOTE: on current Flutter the parameter type is [CardThemeData]
+      // (the old `CardTheme` class is no longer accepted by ThemeData).
+      cardTheme: CardThemeData(
         elevation: 0,
         margin: EdgeInsets.zero,
         color: scheme.surface,
-        // Subtle outline keeps cards readable on tinted backgrounds.
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
           side: BorderSide(color: scheme.outlineVariant),
         ),
       ),
 
-      // --- Filled buttons (primary actions) --------------------------------------
+      // --- Buttons -------------------------------------------------------------------
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           minimumSize: const Size(64, 48),
@@ -97,8 +88,6 @@ class AppTheme {
           ),
         ),
       ),
-
-      // --- Outlined / Text buttons ------------------------------------------------
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           minimumSize: const Size(64, 48),
@@ -107,15 +96,11 @@ class AppTheme {
           ),
         ),
       ),
-
-      // --- Text buttons (row/inline actions) --------------------------------------
       textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(
-          minimumSize: const Size(48, 48),
-        ),
+        style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
       ),
 
-      // --- Inputs (Parser Rule editor, settings, auth) ---------------------------
+      // --- Inputs (Parser Rule editor, settings, auth) ---------------------------------
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: scheme.surfaceContainerHighest,
@@ -136,34 +121,26 @@ class AppTheme {
           borderSide: BorderSide(color: scheme.error, width: 1),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius:  BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(10),
           borderSide: BorderSide(color: scheme.error, width: 1.5),
         ),
       ),
 
-      // --- Floating action button -------------------------------------------------
+      // --- FAB --------------------------------------------------------------------------
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(14),
         ),
       ),
 
-      // --- Chips (filters, status tags) --------------------------------------------
-      chipTheme: ChipThemeData(
-        side: BorderSide.none,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
-      ),
-
-      // --- Dialogs -----------------------------------------------------------------
+      // --- Dialogs ------------------------------------------------------------------------
       dialogTheme: DialogThemeData(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
       ),
 
-      // --- Snackbars -----------------------------------------------------------------
+      // --- Snackbars -------------------------------------------------------------------------
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
@@ -171,11 +148,12 @@ class AppTheme {
         ),
       ),
 
-      // --- Dividers -------------------------------------------------------------------
+      // --- Dividers -----------------------------------------------------------------------------
       dividerTheme: DividerThemeData(
         color: scheme.outlineVariant,
         thickness: 1,
         space: 1,
+      ),
     );
   }
 }
