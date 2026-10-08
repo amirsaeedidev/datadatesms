@@ -1,251 +1,137 @@
-import 'package:equatable/equatable.dart';
-
-import 'package:datadadtesms/features/sync/domain/entities/sync_operation.dart';
-import 'package:datadadtesms/features/sync/domain/entities/sync_status.dart';
-
-/// One entry in the outbound sync queue — sync domain entity.
+/// Lifecycle state of a sync-queue entry — sync domain enum.
 ///
-/// Contract locked in Phase 02 (the queue that guarantees
-/// offline-first: a mutation is DURABLE locally the moment it is
-/// enqueued, and the SyncEngine in Phase 10 delivers it whenever
-/// connectivity allows — the sync layer NEVER deletes an entry
-/// before real success, RULE: "پاک‌کردن Queue قبل از Success واقعی
-/// ممنوع"):
+/// State machine (contract locked in Phase 02; transitions are
+/// OWNED by SyncEngine / queue-manager usecases in Phase 10 — this
+/// enum is vocabulary + documentation only):
 ///
-/// ENQUEUE INVARIANT — created ONLY as pending, by the enqueue
-/// usecases (Phase 08 pipeline / Phase 11 review mutations):
-/// `retryCount == 0`, `nextRetryAt == null`, `failureClass == null`,
-/// `lastError == null`, `attemptStartedAt == null`. The
-/// [SyncQueueItem.enqueued] factory enforces this structurally —
-/// an entry cannot be born with a history it does not have.
+/// ```text
+///             enqueue (Phase 08/11 mutations)
+///                  ↓
+///            ┌───────────┐   claim/lock (attempt starting)
+///            │  pending  │ ──────────────┐
+///            └───────────┘              ↓
+///                                  ┌──────────┐
+///            re-enqueue (retry     │ inFlight │
+///            backoff expired)      └────┬─────┘
+///                  ↑    crash recovery   │ outcome
+///            ┌──────────┐  re-queues     │
+///            │ pending  │←── stuck ones  │
+///            └──────────┘               ↓
+///        ┌─────────────┬──────────────┬─────────────┐
+///        ↓             ↓              ↓             ↓
+///   ┌─────────┐   ┌─────────┐   ┌──────────┐  ┌─────────┐
+///   │ synced  │   │ failed  │   │ pending  │  │ failed  │
+///   └─────────┘   └─────────┘   └──────────┘  └─────────┘
+///   success /     permanent    retryable     unauthorized:
+///   dup-confirmed error        → backoff      token dead —
+///   (TERMINAL)    (TERMINAL,    re-enqueued    surfaced for
+///                see error)    (NOT failed)   manual re-auth,
+///                                              then retried
+/// ```
 ///
-/// CLAIM (inFlight, Phase 10): the queue manager sets
-/// [attemptStartedAt] as the claim marker. A stuck claim after a
-/// crash is recovered on restart by re-queue: reset to pending with
-/// [retryCount] INCREMENTED — a crash mid-attempt counts as one
-/// spent attempt (conservative accounting; the re-send is safe by
-/// operation-level idempotency).
+/// THE IN-FLIGHT/PROCESSING SPLIT (why the middle state is called
+/// `inFlight`, not `processing`): the queue manager CLAIMS an entry
+/// (pending → inFlight) before the HTTP attempt so that concurrent
+/// processing of the same entry is structurally prevented. If the
+/// app dies mid-attempt, the entry is stuck `inFlight` — crash
+/// recovery on app restart re-queues stuck entries back to pending
+/// (a re-send is SAFE because operation-level idempotency is the
+/// whole design of Phase 09). This mirrors the crash-recovery
+/// contract of SmsProcessingStatus.processing.
 ///
-/// RETRY CYCLE (retryable outcomes): status back to pending with
-/// [nextRetryAt] set by the retry policy, [failureClass] carried
-/// from the attempt, `attemptStartedAt` CLEARED (the claim is over —
-/// the reset-on-requeue rule).
+/// OUTCOME CLASSIFICATION (see the SyncFailureClass doc below) is
+/// aligned 1:1 with the Phase 09 API error mapping:
+///  409 duplicate → synced   (idempotent duplicates are SUCCESS)
+///  5xx / network → retryable backoff, NOT failed
+///  401/403 dead token → surfaced (manual re-auth) then retried
+///  4xx permanent → failed (TERMINAL, admin attention)
 ///
-/// COMPLETION is set ONLY on genuine backend acknowledgment:
-/// success or idempotent-duplicate-confirmed → synced. A retrying
-/// entry is NEVER marked completed before real success.
+/// TERMINAL SET: `synced` and `failed`. A failed entry stays in the
+/// queue table (audit + the sync screen's failed tab with manual
+/// retry, Phase 12) — failed is NOT deleted.
 ///
-/// PAYLOAD — [payload] is the fully-marshaled, API-ready body as a
-/// versioned JSON contract ([payloadVersion], see below). Built ONCE
-/// at enqueue time by the enqueue usecase from the LIVE record, and
-/// it is IMMUTABLE from then on: retries replay the EXACT SAME
-/// bytes — no re-marshaling from a possibly-mutated record between
-/// attempts. Retries are byte-identical replays.
-///
-/// ENTITY TYPE — [entityType] is a free-form snake_case domain
-/// discriminator (e.g. 'transaction', 'pending_transaction') with
-/// its vocabulary OWNED by the sync feature's usecases. Deliberately
-/// a String, not an enum: adding a new synced entity kind later must
-/// not break older readers (unknown entityType: log + skip — never
-/// crash the queue on a newer entry kind).
-///
-/// SECURITY: [lastError] must be a SHORT technical message — it
-/// never contains raw SMS or unmasked values (same policy as
-/// ParserRuleResult.errorMessage).
-///
-/// Pure domain: no Flutter, no Supabase, no serialization here —
-/// persistence mapping lives in `SyncQueueItemModel` (data layer,
-/// Phase 03).
-class SyncQueueItem extends Equatable {
-  const SyncQueueItem({
-    required this.id,
-    required this.entityType,
-    required this.entityId,
-    required this.operation,
-    required this.payload,
-    required this.payloadVersion,
-    required this.status,
-    required this.createdAt,
-    this.retryCount = 0,
-    this.nextRetryAt,
-    this.failureClass,
-    this.lastError,
-    this.attemptStartedAt,
-    this.completedAt,
-  });
+/// Pure Dart — no Flutter, no Supabase SDK, fully unit-testable.
+enum SyncStatus {
+  /// Waiting to be claimed. Entry created by enqueue usecases
+  /// (Phase 08 pipeline, Phase 11 review mutations).
+  pending('pending'),
 
-  /// Creates an entry in its INITIAL state — the only sanctioned way
-  /// a queue entry comes into existence (enqueue usecases).
-  /// Enforces the enqueue invariant: pending, no history yet.
-  factory SyncQueueItem.enqueued({
-    required String id,
-    required String entityType,
-    required String entityId,
-    required SyncOperation operation,
-    required Map<String, Object?> payload,
-    required int payloadVersion,
-    required DateTime createdAt,
-  }) {
-    return SyncQueueItem(
-      id: id,
-      entityType: entityType,
-      entityId: entityId,
-      operation: operation,
-      payload: payload,
-      payloadVersion: payloadVersion,
-      status: SyncStatus.pending,
-      createdAt: createdAt,
-      retryCount: 0,
-      nextRetryAt: null,
-      failureClass: null,
-      lastError: null,
-      attemptStartedAt: null,
-      completedAt: null,
-    );
-  }
+  /// Claimed/locked by a sync attempt — the HTTP call is in
+  /// progress (or was, when a crash struck). See the in-flight
+  /// contract in the enum doc comment.
+  inFlight('inFlight'),
 
-  /// Local unique identifier (UUID v4) — the operation idempotency
-  /// handle of this queue entry (same role as Transaction.id for
-  /// transaction sends: a re-send replays the same handle).
-  final String id;
+  /// TERMINAL — backend acknowledged: success or
+  /// idempotent-duplicate-confirmed. The entry is DONE; the queue
+  /// row is retained (audit + history).
+  synced('synced'),
 
-  /// Snake-case domain discriminator of the carried record — see
-  /// the entityType note in the class doc comment.
-  final String entityType;
+  /// TERMINAL — permanent error (4xx-class): not retryable, needs
+  /// admin attention. Retained in the table; visible on the sync
+  /// screen's failed tab with manual retry. Never deleted.
+  failed('failed');
 
-  /// Local id of the carried record (e.g. Transaction.id).
-  /// Together with [entityType] this addresses the record on both
-  /// sides without joins.
-  final String entityId;
+  const SyncStatus(this.wireName);
 
-  /// What kind of write this entry carries — [SyncOperation].
-  final SyncOperation operation;
+  /// Stable wire/serialization name — persisted in the local DB
+  /// (`sync_queue.status`) and consumed by the data-layer mapper.
+  /// IMPORTANT: this wire value is a SINGLE WORD (not
+  /// `in_flight`) — it is persisted forever; never rename existing
+  /// values. (`processing` as a wire value was rejected: this
+  /// middle state is a claim, not work-in-progress.)
+  final String wireName;
 
-  /// Fully-marshaled, versioned, IMMUTABLE JSON body. Built once at
-  /// enqueue; retries replay identical bytes.
-  final Map<String, Object?> payload;
+  /// Whether this is a terminal state — the entry does not
+  /// transition further (manual retry of a failed entry is a NEW
+  /// attempt cycle, documented on the sync screen contract).
+  bool get isTerminal => switch (this) {
+        SyncStatus.pending || SyncStatus.inFlight => false,
+        SyncStatus.synced || SyncStatus.failed => true,
+      };
 
-  /// Version tag of the payload JSON contract (e.g. 1). Lets the
-  /// backend route/migrate old payloads when the contract evolves —
-  /// adding fields is v2 while v1 readers stay working.
-  final int payloadVersion;
-
-  /// Current lifecycle state — see [SyncStatus].
-  final SyncStatus status;
-
-  /// Number of attempts SPENT (a crash mid-attempt also counts —
-  /// conservative accounting, see the claim contract in the class
-  /// doc comment).
-  final int retryCount;
-
-  /// Earliest time the next attempt may start (UTC) — set by the
-  /// retry policy on retryable outcomes; null while there is no
-  /// scheduled retry.
-  final DateTime? nextRetryAt;
-
-  /// Classification of the last attempt's error — [SyncFailureClass].
-  /// Null until an error occurs.
-  final SyncFailureClass? failureClass;
-
-  /// SHORT technical message from the last attempt — safe for
-  /// display on the sync screen (see SECURITY in the class doc
-  /// comment). Null until an error occurs.
-  final String? lastError;
-
-  /// Claim marker: when the current attempt started (UTC). Set on
-/// pending → inFlight; CLEARED on requeue-for-retry (see the
-  /// reset-on-requeue rule in the class doc comment). Null while
-  /// the entry is not claimed.
-  final DateTime? attemptStartedAt;
-
-  /// When this entry reached a TERMINAL state (synced/failed), UTC.
-  /// Null until then — completion NEVER happens before genuine
-  /// backend acknowledgment (see the completion contract in the
-  /// class doc comment).
-  final DateTime? completedAt;
-
-  /// Whether this entry currently needs its clock watched: it is
-  /// either waiting for its first attempt or for a backoff to
-  /// expire. Consumed by the queue manager's claimable-query
-  /// (Phase 10) — the logic itself lives there.
-  bool get isAwaitingAttempt =>
-      status == SyncStatus.pending &&
-      (nextRetryAt == null);
-
-  /// Returns a copy with the provided fields replaced.
+  /// Parses a serialized status coming from local storage or the
+  /// data layer.
   ///
-  /// NOTE: `null` arguments KEEP the current value. Clearing
-  /// [attemptStartedAt] on requeue uses [clearAttemptStartedAt]
-  /// below — the ONE sanctioned clear on this entity (the claim
-  /// marker is the only field whose lifecycle includes returning to
-  /// null).
-  SyncQueueItem copyWith({
-    String? id,
-    String? entityType,
-    String? entityId,
-    SyncOperation? operation,
-    Map<String, Object?>? payload,
-    int? payloadVersion,
-    SyncStatus? status,
-    int? retryCount,
-    DateTime? nextRetryAt,
-    SyncFailureClass? failureClass,
-    String? lastError,
-    DateTime? attemptStartedAt,
-    DateTime? completedAt,
-  }) {
-    return SyncQueueItem(
-      id: id ?? this.id,
-      entityType: entityType ?? this.entityType,
-      entityId: entityId ?? this.entityId,
-      operation: operation ?? this.operation,
-      payload: payload ?? this.payload,
-      payloadVersion: payloadVersion ?? this.payloadVersion,
-      status: status ?? this.status,
-      retryCount: retryCount ?? this.retryCount,
-      nextRetryAt: nextRetryAt ?? this.nextRetryAt,
-      failureClass: failureClass ?? this.failureClass,
-      lastError: lastError ?? this.lastError,
-      attemptStartedAt: attemptStartedAt ?? this.attemptStartedAt,
-      completedAt: completedAt ?? this.completedAt,
-    );
+  /// STRICT — returns `null` for unknown values (standing-enum
+  /// policy): a wrong persisted status silently misreports
+  /// transmission outcomes (a fake `synced` would fake backend
+  /// acknowledgment). Must be surfaced and logged by the mapper —
+  /// never silently remapped.
+  static SyncStatus? fromName(String? name) {
+    if (name == null) {
+      return null;
+    }
+    for (final SyncStatus status in SyncStatus.values) {
+      if (status.wireName == name) {
+        return status;
+      }
+    }
+    return null;
   }
+}
 
-  /// Copy with [attemptStartedAt] explicitly set to null — the
-  /// sanctioned claim-release on requeue-for-retry.
-  SyncQueueItem clearAttemptStartedAt() {
-    return SyncQueueItem(
-      id: id,
-      entityType: entityType,
-      entityId: entityId,
-      operation: operation,
-      payload: payload,
-      payloadVersion: payloadVersion,
-      status: status,
-      retryCount: retryCount,
-      nextRetryAt: nextRetryAt,
-      failureClass: failureClass,
-      lastError: lastError,
-      attemptStartedAt: null,
-      completedAt: completedAt,
-    );
-  }
+/// Classification of a failed attempt outcome — how the sync layer
+/// interprets an error response for retry decisions.
+///
+/// Aligned 1:1 with the Phase 09 API error mapping contract; the
+/// mapping ITSELF is implemented by ApiClient error mapping (Phase
+/// 09). This type is the vocabulary the queue manager and retry
+/// policy consume in Phase 10.
+///
+/// Wire names are OUTBOUND serialization only (logs, the sync
+/// screen). If a future phase ever persists these, the fromName
+/// added THEN must be STRICT (null + quarantine).
+enum SyncFailureClass {
+  /// Transient (5xx / network): retryable with backoff — the entry
+  /// returns to pending with `next_retry_at` set.
+  retryable('retryable'),
 
-  @override
-  List<Object?> get props => <Object?>[
-        id,
-        entityType,
-        entityId,
-        operation,
-        // Equatable performs deep map comparison.
-        payload,
-        payloadVersion,
-        status,
-        retryCount,
-        nextRetryAt,
-        failureClass,
-        lastError,
-        attemptStartedAt,
-        completedAt,
-      ];
+  /// Permanent (4xx-class): not retryable — the entry goes to
+  /// failed (TERMINAL) and needs admin attention.
+  permanent('permanent');
+
+  const SyncFailureClass(this.wireName);
+
+  /// Stable outbound name for logs — never rename existing values.
+  final String wireName;
 }

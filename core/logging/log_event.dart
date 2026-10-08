@@ -41,8 +41,8 @@ import 'package:datadadtesms/core/logging/log_level.dart';
 ///  - [errorCode] — optional machine-readable code
 ///    (e.g. 'DB-001'); rendered by the logs UI as the compact
 ///    technical tag (same convention as ErrorView's code).
-///  - [stackTrace] — for [LogLevel.error]/[LogLevel.critical] with a
-///    caught exception; data-only, no logic.
+///  - [stackTrace] — for LogLevel.error/critical with a caught
+///    exception; data-only, no logic.
 ///
 /// BUCKET RULE: this record is TECHNICAL infrastructure — it lives
 /// in core/logging (dual-home contract: features/logs re-exports it,
@@ -62,7 +62,7 @@ class LogEvent extends Equatable {
     this.details,
   });
 
-  /// Creates an entry at log time — [AppLogger]'s builder in
+  /// Creates an entry at log time — AppLogger's builder in
   /// Phase 04 assembles this from a caught error context.
   LogEvent.error({
     required String id,
@@ -99,4 +99,65 @@ class LogEvent extends Equatable {
   final String module;
 
   /// Stable short event name within the module. Snake_case.
-  final String event
+  final String event;
+
+  /// Human-readable entry — MUST obey the security contract (safe
+  /// references only; see the class doc comment). Technical data
+  /// like hash prefixes stays unlocalized.
+  final String message;
+
+  /// Optional machine-readable code (e.g. 'DB-001').
+  final String? errorCode;
+
+  /// Captured stack trace for error/critical entries — data-only.
+  final StackTraceData? stackTrace;
+
+  /// Free-form safe metadata (same security rule as [message]).
+  /// Key naming convention: snake_case keys, JSON-safe values.
+  final Map<String, Object?>? details;
+
+  @override
+  List<Object?> get props => <Object?>[
+        id,
+        timestamp,
+        level,
+        module,
+        event,
+        message,
+        errorCode,
+        stackTrace,
+        // Equatable performs deep map comparison.
+        details,
+      ];
+}
+
+/// Captured stack-trace information — data-only value object.
+///
+/// Kept as STRUCTURED data (not a raw StackTrace object) so the
+/// record remains serializable into the local DB and inspectable by
+/// the logs screen without depending on the VM's StackTrace type.
+class StackTraceData extends Equatable {
+  const StackTraceData({
+    required this.exceptionType,
+    required this.firstLine,
+    this.frames = const <String>[],
+  });
+
+  /// The exception's runtime type, e.g. 'StateError',
+  /// 'TimeoutException'.
+  final String exceptionType;
+
+  /// The exception's message — short, technical, safe for display.
+  final String firstLine;
+
+  /// Selected frames (top N captured by AppLogger) as plain strings.
+  final List<String> frames;
+
+  @override
+  List<Object?> get props => <Object?>[
+        exceptionType,
+        firstLine,
+        // Equatable performs deep list comparison.
+        frames,
+      ];
+}
