@@ -30,7 +30,7 @@ import 'package:datadadtesms/core/constants/db_constants.dart';
 /// tables).
 @TableIndex(
   name: 'ix_sms_messages_body_hash',
-  columns: <String>['bodyHash'],
+  columns: <Symbol>{#bodyHash}
 )
 class SmsMessagesTable extends Table {
   @override

@@ -37,11 +37,11 @@ import 'package:datadadtesms/core/database/tables/sms_messages_table.dart';
 /// this one carries ONLY the record standing.
 @TableIndex(
   name: 'ix_transactions_timestamp',
-  columns: <String>['timestamp'],
+  columns: <Symbol>{#timestamp}
 )
 @TableIndex(
   name: 'ix_transactions_reference_number',
-  columns: <String>['referenceNumber'],
+  columns: <Symbol>{#referenceNumber}
 )
 class TransactionsTable extends Table {
   @override

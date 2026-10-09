@@ -41,11 +41,11 @@ import 'package:datadadtesms/core/constants/db_constants.dart';
 /// No raw SMS, no unmasked values (same policy as every layer).
 @TableIndex(
   name: 'ix_matching_records_status',
-  columns: <String>['matchStatus'],
+  columns: <Symbol>{#matchStatus}
 )
 @TableIndex(
   name: 'ix_matching_records_transaction_id',
-  columns: <String>['transactionId'],
+  columns: <Symbol>{#transactionId}
 )
 class MatchingRecordsTable extends Table {
   @override

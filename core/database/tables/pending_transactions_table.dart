@@ -30,7 +30,7 @@ import 'package:datadadtesms/core/constants/db_constants.dart';
 /// unknown values at the entity layer).
 @TableIndex(
   name: 'ix_pending_transactions_status',
-  columns: <String>['status'],
+  columns: <Symbol>{#status}
 )
 class PendingTransactionsTable extends Table {
   @override
