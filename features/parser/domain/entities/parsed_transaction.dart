@@ -1,7 +1,5 @@
 import 'package:equatable/equatable.dart';
 
-import 'package:datadadtesms/features/banks/domain/entities/parser_rule.dart';
-import 'package:datadadtesms/features/parser/domain/entities/parser_confidence.dart';
 import 'package:datadadtesms/features/transactions/domain/entities/currency.dart';
 import 'package:datadadtesms/features/transactions/domain/entities/transaction_type.dart';
 
@@ -21,7 +19,7 @@ import 'package:datadadtesms/features/transactions/domain/entities/transaction_t
 /// MASKING: [cardNumberMasked] is already-masked at the EXTRACTION
 /// boundary (CardExtractor, Phase 07) — this entity never carries a
 /// full PAN anywhere, so no downstream layer can leak it:
-///   `'6037********1234'` (head 4 + 12 stars + tail 4).
+///   '6037********1234' (head 4 + 12 stars + tail 4).
 /// The FULL card never exists past the parser layer. [accountNumber]
 /// stays plain: bank SMS never include sensitive PANs in accounts,
 /// and display/audits show it as-is.
@@ -36,16 +34,16 @@ import 'package:datadadtesms/features/transactions/domain/entities/transaction_t
 /// TIMESTAMPS: [timestamp] is the transaction time extracted from
 /// the message body. When no date/time is extractable,
 /// DateExtractor falls back to the SMS receive time and raises
-/// `timestampFallback` on the confidence warnings — the value here
+/// 'timestampFallback' on the confidence warnings — the value here
 /// is ALWAYS usable, never null, by design.
 ///
 /// PROVENANCE: [parserVersion] / [sourceSmsHash] / [sourceMessageId]
 /// tie this parse back to the exact rule set version and message it
 /// came from — the audit chain (Phase 04/15) and the API payload
-/// (`source_sms_hash`, Phase 09) consume these.
+/// ('source_sms_hash', Phase 09) consume these.
 ///
 /// Pure domain: no Flutter, no Supabase, no serialization here —
-/// wire mapping lives in `ParsedTransactionModel` (data layer).
+/// wire mapping lives in 'ParsedTransactionModel' (data layer).
 class ParsedTransaction extends Equatable {
   const ParsedTransaction({
     required this.bankCode,
@@ -65,15 +63,15 @@ class ParsedTransaction extends Equatable {
     this.balance,
   });
 
-  /// Stable wire code of the detected bank — [Bank.code].
+  /// Stable wire code of the detected bank — Bank.code.
   /// Detection itself is BankDetector's job (Phase 07); the parse
   /// output simply carries the resolved bank.
   final String bankCode;
 
-  /// Display name of the bank — [Bank.name] (config data, not l10n).
+  /// Display name of the bank — Bank.name (config data, not l10n).
   final String bankName;
 
-  /// Classified transaction type — [TransactionType.unknown] on
+  /// Classified transaction type — TransactionType.unknown on
   /// ambiguous classification (never a guess).
   final TransactionType type;
 
@@ -81,14 +79,14 @@ class ParsedTransaction extends Equatable {
   /// Non-negative integer; sign is implied by [type].
   final int amount;
 
-  /// Monetary unit — [Currency.irr] unless a rule says otherwise.
+  /// Monetary unit — Currency.irr unless a rule says otherwise.
   final Currency currency;
 
   /// Transaction time from the message body (or receive-time
   /// fallback — see the class doc comment). UTC.
   final DateTime timestamp;
 
-  /// Already-masked card — `'6037********1234'` or null when the
+  /// Already-masked card — '6037********1234' or null when the
   /// message has no card. See the masking contract in the class doc
   /// comment.
   final String? cardNumberMasked;
@@ -106,7 +104,7 @@ class ParsedTransaction extends Equatable {
   /// [currency]. Null when the SMS format carries no balance.
   final int? balance;
 
-  /// Deterministic parse score `0.0..1.0` (the number that flows to
+  /// Deterministic parse score 0.0..1.0 (the number that flows to
   /// the Transaction row and API payload).
   final double confidenceScore;
 
@@ -114,17 +112,17 @@ class ParsedTransaction extends Equatable {
   /// produced this parse — the parser-config audit chain.
   final String parserVersion;
 
-  /// SHA-256 hex of the source SMS — [SmsMessage.bodyHash]. The
-  /// `source_sms_hash` of the API payload; raw body never travels.
+  /// SHA-256 hex of the source SMS — SmsMessage.bodyHash. The
+  /// 'source_sms_hash' of the API payload; raw body never travels.
   final String sourceSmsHash;
 
-  /// Id of the SMS row this parse came from — the `sms_id` FK the
+  /// Id of the SMS row this parse came from — the 'sms_id' FK the
   /// Transaction will carry.
   final String sourceMessageId;
 
   /// Returns a copy with the provided fields replaced.
   ///
-  /// NOTE: `null` arguments KEEP the current value — this entity
+  /// NOTE: null arguments KEEP the current value — this entity
   /// never needs to clear an extracted field back to null, so
   /// standard copyWith semantics are sufficient.
   ParsedTransaction copyWith({
