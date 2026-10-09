@@ -12,8 +12,8 @@ import 'package:datadadtesms/core/constants/db_constants.dart';
 ///
 /// NULLABILITY maps 1:1 to the entity: only [parserVersion] and the
 /// timestamps are entity-nullable. [detectionKeywords] is stored as
-/// a JSON array string — the model layer marshals List<String> ↔
-/// JSON (the entity never sees storage shapes).
+/// a JSON array string — the model layer marshals the dart list to
+/// JSON and back (the entity never sees storage shapes).
 ///
 /// NO createdAt/updatedAt drift helpers — timestamps are explicit
 /// columns written by the model layer from entity values, so the

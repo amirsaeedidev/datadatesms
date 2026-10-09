@@ -64,7 +64,7 @@ class LogEvent extends Equatable {
 
   /// Creates an entry at log time — AppLogger's builder in
   /// Phase 04 assembles this from a caught error context.
-  LogEvent.error({
+  const LogEvent.error({
     required String id,
     required DateTime timestamp,
     required String module,
