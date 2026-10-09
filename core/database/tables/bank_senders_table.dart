@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 
 import 'package:datadadtesms/core/constants/db_constants.dart';
+import 'package:datadadtesms/core/database/tables/banks_table.dart';
 
 /// Registered sender addresses per bank — Drift table
 /// (bank_senders).

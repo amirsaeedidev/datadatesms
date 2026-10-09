@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 
 import 'package:datadadtesms/core/constants/db_constants.dart';
+import 'package:datadadtesms/core/database/tables/banks_table.dart';
 
 /// Configurable parser rules per bank — Drift table (parser_rules).
 ///
@@ -15,9 +16,8 @@ import 'package:datadadtesms/core/constants/db_constants.dart';
 ///  - [keywords] JSON array string, default '[]' — always present,
 ///    possibly empty (entity list is never null)
 ///  - [validation] JSON object string — typed ParserRuleValidation
-///    marshaled by the model layer; 'null' JSON (lowercase) for
-///    ParserRuleValidation.empty. Nullable column + JSON-null
-///    inside is avoided: empty validation persists as '{}'.
+///    marshaled by the model layer; empty validation persists as
+///    '{}'.
 ///
 /// FROZEN WIRE ENUMS as TEXT: field / ruleType store their wire
 /// names ('amount', 'regex', ...) exactly as they arrive from sync
@@ -26,9 +26,10 @@ import 'package:datadadtesms/core/constants/db_constants.dart';
 ///
 /// PRIORITY TIE-BREAK is a storage concern: the entity locks
 /// "priority ASC, ties by id ASC" for deterministic execution order.
-/// The UNIQUE index on (bankId, field, priority) enforces at most
-/// one rule per (bank, field, priority) slot — making the executed
-/// ORDER fully deterministic without relying on id at query time.
+/// The UNIQUE constraint on (bankId, field, priority) enforces at
+/// most one rule per (bank, field, priority) slot — making the
+/// executed ORDER fully deterministic without relying on id at
+/// query time.
 class ParserRulesTable extends Table {
   @override
   String get tableName => DbConstants.tableParserRules;
@@ -64,11 +65,10 @@ class ParserRulesTable extends Table {
   /// ParserRuleValidation.empty. Model marshals the typed class.
   TextColumn get validation => text().withDefault(const Constant('{}'))();
 
-  /// Execution order — LOWER runs first. UNIQUE with (bankId,
-  /// field): one rule per slot (the entity's deterministic
-  /// tie-break, enforced structurally at storage).
-  IntColumn get priority =>
-      integer().withDefault(const Constant(100))();
+  /// Execution order — LOWER runs first. One rule per (bank, field,
+  /// priority) slot — the entity's deterministic tie-break,
+  /// enforced structurally at storage.
+  IntColumn get priority => integer().withDefault(const Constant(100))();
 
   /// Whether a failed extraction from this rule fails the whole
   /// parse — [ParserRule.isRequired].
@@ -86,9 +86,8 @@ class ParserRulesTable extends Table {
 
   @override
   Set<Column> get primaryKey => <Column>{id};
-
-  @override
-  List<String> get uniqueKeys => <List<Column>>[
-        <Column>[bankId, field, priority],
-      ].map((List<Column> cols) => cols.join('_')).toList();
+   @override
+  List<Set<Column>> get uniqueKeys => <Set<Column>>[
+        <Column>{bankId, field, priority},
+      ];
 }
