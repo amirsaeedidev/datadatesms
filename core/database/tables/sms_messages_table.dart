@@ -28,6 +28,10 @@ import 'package:datadadtesms/core/constants/db_constants.dart';
 /// processingStatus / source store their wire names as TEXT —
 /// marshaled by the model layer (same convention as the config
 /// tables).
+@TableIndex(
+  name: 'ix_sms_messages_body_hash',
+  columns: <String>['bodyHash'],
+)
 class SmsMessagesTable extends Table {
   @override
   String get tableName => DbConstants.tableSmsMessages;
@@ -74,11 +78,4 @@ class SmsMessagesTable extends Table {
 
   @override
   Set<Column> get primaryKey => <Column>{id};
-
-  /// Hash-lookup index for the ingestion-level dedup check —
-  /// non-unique by design (see the class doc comment).
-  @override
-  List<TableIndex> get indexes => <TableIndex>[
-        TableIndex('ix_sms_messages_body_hash', columns: <Symbol>[#bodyHash]),
-      ];
 }
