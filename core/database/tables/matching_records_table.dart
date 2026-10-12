@@ -1,6 +1,5 @@
 import 'package:drift/drift.dart';
 
-import 'package:datadadtesms/core/constants/db_constants.dart';
 
 /// Match evaluations — Drift table (matching_records).
 ///
@@ -49,7 +48,7 @@ import 'package:datadadtesms/core/constants/db_constants.dart';
 )
 class MatchingRecordsTable extends Table {
   @override
-  String get tableName => DbConstants.tableMatchingRecords;
+  String get tableName => 'matching_records';
 
   /// Primary key — locally generated UUID (match rows are
   /// local-origin records). TEXT, not auto-increment.

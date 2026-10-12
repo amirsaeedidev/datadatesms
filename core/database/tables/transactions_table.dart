@@ -1,6 +1,5 @@
 import 'package:drift/drift.dart';
 
-import 'package:datadadtesms/core/constants/db_constants.dart';
 import 'package:datadadtesms/core/database/tables/banks_table.dart';
 import 'package:datadadtesms/core/database/tables/sms_messages_table.dart';
 
@@ -45,7 +44,7 @@ import 'package:datadadtesms/core/database/tables/sms_messages_table.dart';
 )
 class TransactionsTable extends Table {
   @override
-  String get tableName => DbConstants.tableTransactions;
+  String get tableName => 'transactions';
 
   /// Primary key — [Transaction.id], locally generated UUID. Also
   /// the Idempotency-Key of the send path (Phase 09). TEXT, not

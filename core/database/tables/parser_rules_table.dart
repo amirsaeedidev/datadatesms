@@ -1,6 +1,5 @@
 import 'package:drift/drift.dart';
 
-import 'package:datadadtesms/core/constants/db_constants.dart';
 import 'package:datadadtesms/core/database/tables/banks_table.dart';
 
 /// Configurable parser rules per bank — Drift table (parser_rules).
@@ -32,7 +31,7 @@ import 'package:datadadtesms/core/database/tables/banks_table.dart';
 /// query time.
 class ParserRulesTable extends Table {
   @override
-  String get tableName => DbConstants.tableParserRules;
+  String get tableName => 'parser_rules';
 
   /// Primary key — [ParserRule.id], backend identifier. TEXT, not
   /// auto-increment (config rows arrive with ids).

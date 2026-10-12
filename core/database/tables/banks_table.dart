@@ -1,6 +1,5 @@
 import 'package:drift/drift.dart';
 
-import 'package:datadadtesms/core/constants/db_constants.dart';
 
 /// Bank configuration rows — Drift table (banks).
 ///
@@ -21,7 +20,7 @@ import 'package:datadadtesms/core/constants/db_constants.dart';
 /// (no hidden auto-now magic that can drift from wire data).
 class BanksTable extends Table {
   @override
-  String get tableName => DbConstants.tableBanks;
+  String get tableName => 'banks';
 
   /// Primary key — [Bank.id], the stable backend identifier.
   /// TEXT because bank rows are backend-authored (their UUIDs).

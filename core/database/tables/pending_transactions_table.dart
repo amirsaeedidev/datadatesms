@@ -1,6 +1,5 @@
 import 'package:drift/drift.dart';
 
-import 'package:datadadtesms/core/constants/db_constants.dart';
 
 /// Expected-payment records — Drift table (pending_transactions).
 ///
@@ -34,7 +33,7 @@ import 'package:datadadtesms/core/constants/db_constants.dart';
 )
 class PendingTransactionsTable extends Table {
   @override
-  String get tableName => DbConstants.tablePendingTransactions;
+  String get tableName => 'pending_transactions';
 
   /// Primary key — [PendingTransaction.id], the BACKEND identifier
   /// (not a local UUID). TEXT; rows arrive by sync with their ids.

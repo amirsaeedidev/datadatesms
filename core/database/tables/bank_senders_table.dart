@@ -1,6 +1,5 @@
 import 'package:drift/drift.dart';
 
-import 'package:datadadtesms/core/constants/db_constants.dart';
 import 'package:datadadtesms/core/database/tables/banks_table.dart';
 
 /// Registered sender addresses per bank — Drift table
@@ -26,7 +25,7 @@ import 'package:datadadtesms/core/database/tables/banks_table.dart';
 /// layer marshals the enum — same convention as banks.parserType.
 class BankSendersTable extends Table {
   @override
-  String get tableName => DbConstants.tableBankSenders;
+  String get tableName => 'bank_senders';
 
   /// Primary key — [BankSender.id], backend identifier. TEXT
   /// (config rows arrive with ids). Not auto-increment.

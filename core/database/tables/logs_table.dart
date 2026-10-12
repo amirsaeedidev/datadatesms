@@ -1,6 +1,5 @@
 import 'package:drift/drift.dart';
 
-import 'package:datadadtesms/core/constants/db_constants.dart';
 
 /// TECHNICAL log entries — Drift table (logs).
 ///
@@ -30,7 +29,7 @@ import 'package:datadadtesms/core/constants/db_constants.dart';
 )
 class LogsTable extends Table {
   @override
-  String get tableName => DbConstants.tableLogs;
+  String get tableName => 'logs';
 
   /// Primary key — [LogEvent.id], UUID at log time. TEXT, not
   /// auto-increment.
@@ -98,7 +97,7 @@ class LogsTable extends Table {
 )
 class AuditEventsTable extends Table {
   @override
-  String get tableName => DbConstants.tableAuditEvents;
+  String get tableName => 'audit_events';
 
   /// Primary key — [AuditEvent.id], UUID at emission time. TEXT,
   /// not auto-increment.

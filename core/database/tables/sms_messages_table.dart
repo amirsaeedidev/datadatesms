@@ -1,6 +1,5 @@
 import 'package:drift/drift.dart';
 
-import 'package:datadadtesms/core/constants/db_constants.dart';
 
 /// Ingested SMS messages — Drift table (sms_messages).
 ///
@@ -34,7 +33,7 @@ import 'package:datadadtesms/core/constants/db_constants.dart';
 )
 class SmsMessagesTable extends Table {
   @override
-  String get tableName => DbConstants.tableSmsMessages;
+  String get tableName => 'sms_messages';
 
   /// Primary key — [SmsMessage.id], locally generated UUID at
   /// receive time. TEXT, not auto-increment.

@@ -1,6 +1,5 @@
 import 'package:drift/drift.dart';
 
-import 'package:datadadtesms/core/constants/db_constants.dart';
 
 /// Outbound transmission queue — Drift table (sync_queue).
 ///
@@ -44,7 +43,7 @@ import 'package:datadadtesms/core/constants/db_constants.dart';
 )
 class SyncQueueTable extends Table {
   @override
-  String get tableName => DbConstants.tableSyncQueue;
+  String get tableName => 'sync_queue';
 
   /// Primary key — [SyncQueueItem.id], locally generated UUID. The
   /// operation idempotency handle of the sync path. TEXT, not
