@@ -12,7 +12,7 @@
 ///    or an admin confirming a Transaction). We send the ENTIRE
 ///    record — the backend is the source of truth for merge and
 ///    last-write-wins on overlapping fields is the backend's call.
-///    The operation is idempotent by [SyncQueueItem.id], so retries
+///    The operation is idempotent by SyncQueueItem.id, so retries
 ///    never double-apply.
 ///
 /// NO [delete] value — deliberate: this product has no local-origin
