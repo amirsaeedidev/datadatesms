@@ -195,6 +195,7 @@ class SyncQueueItem extends Equatable {
     String? lastError,
     DateTime? attemptStartedAt,
     DateTime? completedAt,
+    DateTime? createdAt,
   }) {
     return SyncQueueItem(
       id: id ?? this.id,
@@ -210,6 +211,7 @@ class SyncQueueItem extends Equatable {
       lastError: lastError ?? this.lastError,
       attemptStartedAt: attemptStartedAt ?? this.attemptStartedAt,
       completedAt: completedAt ?? this.completedAt,
+      createdAt: createdAt ?? this.createdAt,
     );
   }
 
@@ -230,6 +232,7 @@ class SyncQueueItem extends Equatable {
       lastError: lastError,
       attemptStartedAt: null,
       completedAt: completedAt,
+      createdAt: createdAt,
     );
   }
 
@@ -249,5 +252,6 @@ class SyncQueueItem extends Equatable {
         lastError,
         attemptStartedAt,
         completedAt,
+        createdAt,
       ];
 }
