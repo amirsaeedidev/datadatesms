@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import 'package:datadadtesms/app/app_router.dart';
+import 'package:datadadtesms/core/database/app_database.dart';
 
 /// Application-wide dependency container — the single COMPOSITION ROOT.
 ///
@@ -12,11 +13,10 @@ import 'package:datadadtesms/app/app_router.dart';
 ///     registration point (providers in `app_providers.dart`).
 ///
 /// REGISTRATION ORDER (locked — mirrors the roadmap):
-///   Core infra  (router, logger, security)          Phase 01/04
-///   DataSources (drift DB, native bridge)           Phase 03/05
-///   Repositories                                     Phase 03+
-///   Engines / Services (parser, matching, sync)      Phase 07/10
-///   UseCases                                         Phase 06+
+///   Core infra  (router, database)                    Phase 01/03
+///   Security & logging services                       Phase 04
+///   DataSources (native bridge)                       Phase 05+
+///   Repositories / Engines / UseCases                 Phase 03 Step 03.6+
 ///   Providers are NOT stored here — they are created
 ///   lazily in `app_providers.dart` (Phase 11).
 ///
@@ -43,16 +43,26 @@ class DependencyInjection {
   /// Central navigator configuration (root navigator key owner).
   AppRouter get appRouter => _notReady(_appRouter, 'appRouter');
 
+  AppDatabase? _appDatabase;
+
+  /// The offline-first local store (Drift over SQLite).
+  ///
+  /// LIFECYCLE: constructed eagerly in [initialize] but OPENED
+  /// LAZILY by Drift on the first query — construction costs
+  /// nothing until the pipeline actually reads. Closed in [dispose]
+  /// (reverse order: DB closes BEFORE infra fields are nulled).
+  ///
+  /// TESTS: construct their own `AppDatabase(NativeDatabase.memory())`
+  /// instance directly — they do NOT use this getter (the production
+  /// file-backed connection is not what schema/CRUD tests verify).
+  AppDatabase get appDatabase => _notReady(_appDatabase, 'appDatabase');
+
   // ---------------------------------------------------------------------------
   // Lifecycle
   // ---------------------------------------------------------------------------
 
   /// Builds the dependency graph. Must complete before the first frame
   /// (called with `await` in `main.dart`).
-  ///
-  /// Phase 01: only the router exists. Each later phase APPENDS its
-  /// registrations in dependency order — nothing is ever constructed
-  /// before its own dependencies are ready.
   Future<void> initialize() async {
     // ------------------------------------------------------------------
     // Phase 01 — App bootstrap
@@ -60,27 +70,32 @@ class DependencyInjection {
     _appRouter = AppRouter();
 
     // ------------------------------------------------------------------
-    // Phase 03 — Local database (Drift) — appended here:
-    //   _appDatabase = AppDatabase();
-    //   (Drift opens the connection lazily on first query.)
-    //
-    // Phase 04 — Security & logging — appended here:
+    // Phase 03 — Local database (Drift).
+    // Lazily opened by Drift on first query; migration strategy and
+    // schema versioning live in database_migrations.dart / db_constants.
+    // ------------------------------------------------------------------
+    _appDatabase = AppDatabase();
+
+    // ------------------------------------------------------------------
+    // Phase 04 — Security & logging services — appended here:
     //   _secureStorageService = SecureStorageService();
+    //   _hashUtils / _maskService = ...
     //   _appLogger = AppLogger(...);
+    //   _auditLogger = AuditLogger(...);
     //
-    // Phase 03+ — DataSources / Repositories / Engines / UseCases —
-    // appended in strict dependency order, one block per phase.
+    // Phase 03 Step 03.6+ — Repositories — appended here in
+    // dependency order (they consume appDatabase).
+    //
+    // Phase 05+ — DataSources / Engines / UseCases — appended per phase.
     // ------------------------------------------------------------------
   }
 
-  /// Releases every owned resource. Called on app teardown —
-  /// in later phases this also closes the database and stops engines.
+  /// Releases every owned resource — REVERSE order of [initialize]:
+  /// the database (which may have in-flight statements) closes
+  /// BEFORE infrastructure fields are nulled.
   Future<void> dispose() async {
-    // ------------------------------------------------------------------
-    // Reverse order of initialize(). Appended phase by phase:
-    //
-    //   await _appDatabase?.close();   // Phase 03
-    // ------------------------------------------------------------------
+    await _appDatabase?.close();
+    _appDatabase = null;
     _appRouter = null;
   }
 
@@ -91,6 +106,7 @@ class DependencyInjection {
   @visibleForTesting
   static void resetForTesting() {
     instance._appRouter = null;
+    instance._appDatabase = null;
     // Future phases null-out their fields here as well.
   }
 
